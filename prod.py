@@ -7,7 +7,7 @@ import json
 import time
 import threading
 from pathlib import Path
-from cloaking.presidio_requests import  anonymize_text_post,anonymize_pdf
+from cloaking.presidio_requests import  anonymize_text_post,anonymize_pdf,anonymize_pdf_results
 
 # Flask app setup
 app = Flask(__name__)
@@ -43,7 +43,7 @@ system_prompts = {
     For the given message that a user sends to a chatbot, identify all the personally identifiable information using the above taxonomy only, and the entity_type should be selected from the all-caps categories.
     Note that the information should be related to a real person not in a public context, but okay if not uniquely identifiable.
     Result should be in its minimum possible unit.
-    Return me ONLY a json in the following format: {"results": [{"entity_type": YOU_DECIDE_THE_PII_TYPE, "text": PART_OF_MESSAGE_YOU_IDENTIFIED_AS_PII]}''',
+    Return me ONLY a json in the following format. Results should be an array of all PII you have identified. It should be a valid json: {"results": [{"entity_type": YOU_DECIDE_THE_PII_TYPE, "text": PART_OF_MESSAGE_YOU_IDENTIFIED_AS_PII, "position_start": POSITION_OF_THE_TEXT_IN_THE_SENTENCE_INCLUDING_SPACES_START,"position_end": POSITION_OF_THE_TEXT_IN_THE_SENTENCE_INCLUDING_SPACES_END]}''',
     "abstract": '''Rewrite the text to abstract the protected information, without changing other parts. For example:
         Input: <Text>I graduated from CMU, and I earn a six-figure salary. Today in the office...</Text>
         <ProtectedInformation>CMU, Today</ProtectedInformation>
@@ -56,6 +56,37 @@ base_options = {"format": "json", "temperature": 0}
 
 # Path to the log file
 log_file_path = Path("logs.txt")
+
+
+
+def create_prompt(anonymized_text: str) -> str:
+    """
+    Create the prompt with instructions to GPT-3.
+    
+    :param anonymized_text: Text with placeholders instead of PII values, e.g. My name is <PERSON>.
+    """
+
+    prompt = f"""
+    Your role is to create synthetic text based on de-identified text with placeholders instead of Personally Identifiable Information (PII).
+    Replace the placeholders (e.g. ,<PERSON>, {{DATE}}, {{ip_address}}) with fake values.
+    Instructions:
+    a. Use completely random numbers, so every digit is drawn between 0 and 9.
+    b. Use realistic names that come from diverse genders, ethnicities and countries.
+    c. If there are no placeholders, return the text as is.
+    d. Keep the formatting as close to the original as possible.
+    e. If PII exists in the input, replace it with fake values in the output.
+    f. Remove whitespace before and after the generated text
+    
+    input: [[TEXT STARTS]] How do I change the limit on my credit card {{credit_card_number}}?[[TEXT ENDS]]
+    output: How do I change the limit on my credit card 2539 3519 2345 1555?
+    input: [[TEXT STARTS]]<PERSON> was the chief science officer at <ORGANIZATION>.[[TEXT ENDS]]
+    output: Katherine Buckjov was the chief science officer at NASA.
+    input: [[TEXT STARTS]]Cameroon lives in <LOCATION>.[[TEXT ENDS]]
+    output: Vladimir lives in Moscow.
+    
+    input: [[TEXT STARTS]]{anonymized_text}[[TEXT ENDS]]
+    output:"""
+    return prompt
 
 def log_to_file(message):
     """Write log message to the logs.txt file."""
@@ -76,6 +107,7 @@ def get_response_stream(model_name, system_prompt, user_message, chunking):
     else:
         prompt_chunks = [user_message]
     results = []
+    print("chuuuuunkkkks",prompt_chunks)
     for prompt_chunk in prompt_chunks:
         buffer = ""
         last_parsed_content = ""
@@ -128,11 +160,10 @@ def cloack():
 
     log_to_file("Detect request received!")
     print("Detect request received!")
-    print(f"INPUT TEXT: {input_text}")
-    return Response(
-        anonymize_text_post(input_text),
-        content_type="application/json"
-    )
+    # return Response(
+    #     anonymize_text_post(input_text),
+    #     content_type="application/json"
+    # )
     return Response(
         get_response_stream(global_base_model, system_prompts["detect"], input_text, True),
         content_type="application/json"
@@ -156,7 +187,7 @@ def cloak_pdf():
 
     try:
         
-        output_path = anonymize_pdf(input_pdf_path, "output.pdf")
+        output_path = anonymize_pdf_results(input_pdf_path, "output.pdf")
 
         
         # Step 4: Send the redacted PDF as a response
