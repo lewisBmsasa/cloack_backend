@@ -1,0 +1,11 @@
+2025-03-19 22:11:27 - Result chunk: {'results': []} (Time: 17.93s)
+2025-03-19 22:13:54 - Result chunk: {'results': []} (Time: 0.51s)
+2025-03-19 22:14:32 - Result chunk: {'results': []} (Time: 0.55s)
+2025-03-19 22:15:03 - Result chunk: {'results': []} (Time: 0.55s)
+2025-03-19 22:19:46 - Detect request received!
+2025-03-19 22:19:49 - Result chunk: {'results': [{'entity_type': 'NAME', 'text': 'Lewis'}]} (Time: 2.53s)
+2025-03-19 22:19:49 - Result chunk: {'results': [{'entity_type': 'NAME', 'text': 'Lewis'}]} (Time: 2.65s)
+2025-03-19 22:20:52 - Result chunk: {'results': []} (Time: 1.41s)
+2025-03-19 22:20:57 - Detect request received!
+2025-03-19 22:21:00 - Result chunk: {'results': [{'entity_type': 'NAME', 'text': 'Lewis'}]} (Time: 2.55s)
+2025-03-19 22:21:00 - Result chunk: {'results': [{'entity_type': 'NAME', 'text': 'Lewis'}]} (Time: 2.67s)
